@@ -2,7 +2,6 @@ logs/
 utils/__pycache__
 model/__pycache__
 pre_exp/
-*.png
 *.out
 *.pdf
 *.svg
