@@ -7,7 +7,7 @@ from torch.distributions.laplace import Laplace
 
 from utils.data import UserItemRatingDataset
 from utils.metrics import MetronAtK
-from .tools import aggregateByWeight, aggregateByMatrix
+from .tools import aggregateByMatrix
 from .tools import updateMatrix
 
 
@@ -68,11 +68,10 @@ class Engine(object):
 
     def aggregateParamsFromClients(self, client_params, **kwargs):
         """receive client models' parameters in a round, aggregate them and store the aggregated result for server."""
-        # # KeyError
-        # if 'client_sample_num' not in kwargs or kwargs['client_sample_num'] is None:
-        #     raise ValueError("The 'client_sample_num' argument cannot be empty.")
-        # # aggregating
-        # self.server_model_param = aggregateByWeight(client_params, kwargs["client_sample_num"], self.config)
+        # KeyError
+        if 'aggregation_matrix' not in kwargs or kwargs['aggregation_matrix'] is None:
+            raise ValueError("The 'aggregation_matrix' argument cannot be empty.")
+        # aggregating
         self.server_model_params = aggregateByMatrix(client_params, kwargs["aggregation_matrix"], self.config)
         pass
 
@@ -88,8 +87,6 @@ class Engine(object):
         losses = {}
         # store all the clients' sample num
         client_sample_num = {}
-        # adaptation weight
-        adapt_weight = {}
 
         # perform model update for each participated user.
         for user in participants:
@@ -98,8 +95,6 @@ class Engine(object):
             # for the first round, client models copy initialized parameters directly.
             client_model = copy.deepcopy(self.model)
             client_model.setItemEmbeddings(item_embeddings)
-            if self.config['backbone'] == 'FedNCF':
-                client_model.setMLPweights(mlp_weights)
 
             # for other rounds, client models receive updated item embedding and score function from server.
             if iteration != 0:
@@ -107,12 +102,6 @@ class Engine(object):
                 if user in self.client_model_params.keys():
                     for key in self.client_model_params[user].keys():
                         client_param_dict[key] = copy.deepcopy(self.client_model_params[user][key].data)
-
-                    if self.config['backbone'] == 'FedNCF':
-                        for layer in range(len(self.config['mlp_layers']) - 1):
-                            client_param_dict['mlp_weights.' + str(layer) + '.weight'].data = self.server_model_param['mlp_weights.' + str(layer) + '.weight'].data
-                            client_param_dict['mlp_weights.' + str(layer) + '.bias'].data = self.server_model_param['mlp_weights.' + str(layer) + '.bias'].data
-
 
                 if self.config['use_cuda']:
                     for key in client_param_dict.keys():
@@ -129,16 +118,8 @@ class Engine(object):
                     {'params': client_model.user_embedding.parameters(), 'lr': self.config['lr_embedding']},
                     {'params': client_model.item_embeddings.parameters(), 'lr': self.config['lr_embedding']}
                 ])
-            elif self.config['backbone'] == 'FedNCF':
-                optimizer = torch.optim.Adam([
-                    {'params': client_model.user_embedding.parameters(), 'lr': self.config['lr_embedding']},
-                    {'params': client_model.item_embeddings.parameters(), 'lr': self.config['lr_embedding']},
-                    {'params': client_model.mlp_weights.parameters(), 'lr': self.config['lr_structure'],
-                     'weight_decay': self.config['weight_decay']}
-                ])
             
             optimizer_adapter = torch.optim.Adam([
-                    # {'params': client_model.user_embedding.parameters(), 'lr': self.config['lr_embedding']},
                     {'params': client_model.adapter.parameters(), 'lr': self.config['lr_adapter']}
                 ])
             
@@ -170,9 +151,6 @@ class Engine(object):
                         client_losses[epoch - 1] + 1e-5) < self.config['threshold']:
                     break
 
-            # if iteration > 0 and user in self.server_model_params:
-            #     client_model.adpatItemEmbeddings(self.server_model_params[user])
-
             # obtain client model parameters,
             self.client_model_params[user] = copy.deepcopy(client_model.state_dict())
 
@@ -194,7 +172,7 @@ class Engine(object):
         return losses
 
     @torch.no_grad()
-    def federatedEvaluate(self, evaluate_data, test=False):
+    def federatedEvaluate(self, evaluate_data):
         # evaluate all client models' performance using testing data.
         test_users, test_items = evaluate_data[0], evaluate_data[1]
         negative_users, negative_items = evaluate_data[2], evaluate_data[3]

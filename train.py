@@ -22,23 +22,20 @@ def loadEngine(configuration):
 if __name__ == '__main__':
     # Training settings
     parser = argparse.ArgumentParser()
-    parser.add_argument('--backbone', type=str, default='FCF', choices=['FCF', 'FedNCF'])
-    parser.add_argument('--dataset', type=str, default='filmtrust')
+    parser.add_argument('--backbone', type=str, default='FCF', choices=['FCF'])
+    parser.add_argument('--dataset', type=str, default='lastfm-2k')
     parser.add_argument('--data_file', type=str, default='ratings.dat')
     parser.add_argument('--train_frac', type=float, default=1.0)
     parser.add_argument('--clients_sample_ratio', type=float, default=1.0)
     parser.add_argument('--top_k', type=int, default=10)
-    parser.add_argument('--top_k_', type=int, default=5)
     parser.add_argument('--global_round', type=int, default=100)
     parser.add_argument('--local_epoch', type=int, default=10)
     parser.add_argument('--threshold', type=float, default=1e-4)
     parser.add_argument('--batch_size', type=int, default=256)
-    parser.add_argument('--lr_structure', type=float, default=1e-1)
     parser.add_argument('--lr_embedding', type=float, default=1e-1)
     parser.add_argument('--lr_adapter', type=float, default=1e-1)
     parser.add_argument('--weight_decay', type=float, default=1e-3)
     parser.add_argument('--latent_dim', type=int, default=16)
-    parser.add_argument('--mlp_layers', type=list, default=[32, 16, 8, 1])
     parser.add_argument('--num_negative', type=int, default=4)
     parser.add_argument('--device_id', type=int, default=0)
     parser.add_argument('--use_cuda', type=bool, default=True)
@@ -95,14 +92,6 @@ if __name__ == '__main__':
 
     mlp_weights_init = None
 
-    if config['backbone'] == 'FedNCF':
-        mlp_weights_init = torch.nn.ModuleList()
-        for idx, (in_size, out_size) in enumerate(zip(config['mlp_layers'][:-1], config['mlp_layers'][1:])):
-            mlp_weights_init.append(torch.nn.Linear(in_size, out_size))
-
-        if config['use_cuda']:
-            mlp_weights_init = mlp_weights_init.cuda()
-
     if config['use_cuda']:
         item_embeddings_init = item_embeddings_init.cuda()
 
@@ -112,7 +101,7 @@ if __name__ == '__main__':
 
         logging.info('--------------- Round {} starts ! ---------------'.format(iteration + 1))
 
-        if config['backbone'] == 'FCF' or config['backbone'] == 'FedNCF':
+        if config['backbone'] == 'FCF':
             train_data = sample_generator.store_all_train_data(config['num_negative'])
         else:
             train_data = sample_generator.instance_a_train_loader(config['num_negative'], config['batch_size'])
@@ -148,7 +137,7 @@ if __name__ == '__main__':
         val_ndcgs.append(val_ndcg)
 
         # 3. Evaluations on Test set
-        hr, ndcg = engine.federatedEvaluate(test_data, True)
+        hr, ndcg = engine.federatedEvaluate(test_data)
 
         logging.info(
             '[Epoch {}/{}][Test] HR@{} = {:.4f}, NDCG@{} = {:.4f}'.format(iteration + 1, config['global_round'],

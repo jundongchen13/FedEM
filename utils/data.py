@@ -29,7 +29,7 @@ class UserItemRatingDataset(Dataset):
 
 
 class SampleGenerator(object):
-    """Construct dataset for NCF"""
+    """Construct dataset"""
 
     def __init__(self, ratings, config):
         """

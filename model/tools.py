@@ -9,36 +9,6 @@ import numpy.linalg as la
 import matplotlib.pyplot as plt
 import torch.nn.functional as F
 
-def aggregateByWeight(client_params, client_sample_num, config):
-    weight_vector = calculate_client_weights(client_sample_num)
-    client_item_embeddings = torch.zeros(len(client_params), config['num_items'] * config['latent_dim'])
-    for i, user in enumerate(client_params.keys()):
-        if i == 0:
-            server_param = copy.deepcopy(client_params[user])
-        client_item_embeddings[i] = client_params[user]['item_embeddings.weight'].data.view(-1)
-
-    client_item_embeddings = client_item_embeddings.cuda()
-    weight_vector = weight_vector.cuda()
-    aggregated_item_embedding = weight_vector @ client_item_embeddings
-
-    server_param['item_embeddings.weight'].data = aggregated_item_embedding.view(config['num_items'], config['latent_dim'])
-
-    if config['backbone'] == 'FedNCF':
-        for i, user in enumerate(client_params.keys()):
-            # load a user's parameters and weight
-            user_params = client_params[user]
-            user_weight = weight_vector[i]
-            if i == 0:
-                for layer in range(len(config['mlp_layers']) - 1):
-                    server_param['mlp_weights.' + str(layer) + '.weight'] = user_weight * user_params['mlp_weights.' + str(layer) + '.weight'].data
-                    server_param['mlp_weights.' + str(layer) + '.bias'] = user_weight * user_params['mlp_weights.' + str(layer) + '.bias'].data
-            else:
-                for layer in range(len(config['mlp_layers']) - 1):
-                    server_param['mlp_weights.' + str(layer) + '.weight'] += user_weight * user_params['mlp_weights.' + str(layer) + '.weight'].data
-                    server_param['mlp_weights.' + str(layer) + '.bias'] += user_weight * user_params['mlp_weights.' + str(layer) + '.bias'].data
-
-    return server_param
-
 
 def aggregateByMatrix(client_params, aggregation_matrix, config):
     client_item_embeddings = torch.zeros(len(client_params), config['num_items'] * config['latent_dim'])
@@ -132,8 +102,6 @@ def matrix_shift(matrix):
     matrix[matrix.abs() < 1e-20] = 0
     row_sums = matrix.sum(dim=1)
     matrix = matrix / row_sums.view(-1, 1)
-    # zero_count = np.count_nonzero(matrix == 0)
-    # print("num of 0:", zero_count)
     return matrix
 
 

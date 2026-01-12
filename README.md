@@ -2,7 +2,9 @@
 
 ## Introduction
 
-Federated recommendation (FR) facilitates collaborative training by aggregating local models from massive devices, enabling client-specific personalization while ensuring privacy. However, we empirically and theoretically demonstrate that server-side aggregation can undermine client-side personalization, leading to suboptimal performance, which we term the aggregation bottleneck. This issue stems from the inherent heterogeneity across numerous clients in FR, which drives the globally aggregated model to deviate from local optima. To this end, we propose FedEM, which elastically merges the global and local models to compensate for impaired personalization. Unlike existing personalized federated recommendation (pFR) methods, FedEM (1) investigates the aggregation bottleneck in FR through theoretical insights, rather than relying on heuristic analysis; (2) leverages off-the-shelf local models rather than designing additional mechanisms to boost personalization. Extensive experiments on real-world datasets demonstrate that our method preserves client personalization during collaborative training, outperforming state-of-the-art baselines.
+Federated recommendation (FR) facilitates collaborative training by aggregating local models from massive devices, enabling client-specific personalization while ensuring privacy. However, we empirically and theoretically demonstrate that server-side aggregation can undermine client-side personalization, leading to suboptimal performance, i.e., the aggregation bottleneck. This issue stems from the inherent heterogeneity across numerous clients in FR, which drives the global model to deviate from local optima. To this end, we propose FedEM, which elastically merges the global and local models to compensate for impaired personalization. Unlike existing personalized federated recommendation (pFR) methods, FedEM (1) investigates the aggregation bottleneck in FR through theoretical insights, rather than relying on heuristic analysis; (2) leverages off-the-shelf local models rather than designing additional mechanisms to boost personalization. Extensive experiments demonstrate that our method preserves client personalization during collaborative training, outperforming state-of-the-art baselines.
+
+![](/figs/framework.png)
 
 ## Requirements
 
@@ -31,7 +33,7 @@ FedEM  # The root of project.
 │   train.py # The entry function file includes the main hyperparameter configurations.
 |
 └───datasets  # The used datasets in this work.
-│   │   filmtrust   
+│   │   lastfm-2k   
 |   │       ratings.dat
 |   |   ...
 |   |
@@ -62,5 +64,16 @@ Please change the used dataset and hyper-parameters in `train.py`.
 
 `mkdir logs`
 
-`python train.py --dataset='filmtrust' --lr_embedding=1e-1 --lr_adapter=1e-1 --alpha=0.9`
+`python train.py --dataset='lastfm-2k' --lr_embedding=1e-1 --lr_adapter=1e-1`
 
+## Citation
+If this repository is useful for your research, please consider citing our paper:
+
+```
+@inproceedings{chen2026fedem,
+  title={Breaking the aggregation bottleneck in federated recommendation: A personalized model merging approach},
+  author={Chen, Jundong and Zhang, Honglei and Zhang, Chunxu and Luo, Fangyuan and Li, Yidong},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  year={2026}
+}
+```
